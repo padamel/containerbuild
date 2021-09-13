@@ -1,0 +1,63 @@
+#!/bin/bash
+#DockerBuildImageAutomation
+#Author: Padamel@dataservicegroup
+
+echo -e "what Operating System do want to use? please select between centos, ubuntu, httpd, debian\n"
+read iOS
+
+if [ -f Dockerfile ]
+then
+echo -e "FROM ${iOS}\n" > Dockerfile
+echo -e "ENV TZ=America/New_York\n" >> Dockerfile
+else
+
+echo -e "\ncreate Dockerfile\n"
+fi
+
+echo " "
+echo -e "who to call for maintenance?\n"
+read maintNam
+
+echo -e "\nwhat version of Operating System you want to use? (latest, or enter number)\n"
+read vers
+
+echo -e "\nfor a Linux flavor to run perfectly, you need to install a program in it. Which application or program do you wish to install? choose one or more between vim, curl, httpd, tzdata, apache2, wget\n"
+read pro
+
+echo -e "\ndo you want your docker container to be save in a directory when it gets deleted? If yes, what is the name of that directory?\n"
+read v
+
+echo " "
+echo -e "do you want a default file to be copy to a specific directory so that the content of the file displays based on the url? If yes, give the file name?\n"
+read dfile
+
+echo " "
+echo -e "on which port do you want your default file to be exposed? (enter number only)\n"
+read exp
+
+sed -i '2 a\LABEL maintainer '${maintNam}'\nLABEL version '${vers}'' Dockerfile
+sleep 2
+
+if [ ${iOS} = centos ]
+then
+echo -e "RUN yum install httpd -y\nRUN yum install vim -y\nVOLUME ${v}\nCOPY ${dfile} /var/www/html\nEXPOSE ${exp}\nCMD systemctl -D FOREGROUND\n" >> Dockerfile
+elif [ ${iOS} = ubuntu ]
+then
+echo -e "RUN apt-get update -y\nRUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone\nRUN apt-get install apache2 -y\nVOLUME ${v}\nCOPY ${dfile} /usr/local/apache2/htdocs\nEXPOSE ${exp}\nCMD apachectl -D FOREGROUND\n" >> Dockerfile
+fi
+
+sleep 2
+if [ ${iOS} = alpine ]
+then
+echo -e "RUN apk update\nRUN apk add wget\nRUN apk add curl\nVOLUME ${v}\nCOPY ${dfile} /usr/local/apache2/htdocs\nEXPOSE ${exp}\nCMD apachectl -D FOREGROUND\nCMD systemctl -D FOREGROUND\n" >> Dockerfile
+echo -e "RUN apk add apache2\n" >> Dockerfile
+systemctl enable apache2
+fi
+
+echo -e "This ${maintNam} is the builder of this ${iOS} base image that contains some applications like ${pro} and that are running in it, it has ${dfile} as default file whose content can be output on the browser\n"
+
+systemctl enable httpd
+
+docker build -t padamel/${iOS}:${vers} .
+
+echo $?
